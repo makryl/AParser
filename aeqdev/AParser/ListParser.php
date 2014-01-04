@@ -2,7 +2,7 @@
 
 /**
  * http://aeqdev.com/tools/php/aparser/
- * v 1.0
+ * v 1.1
  *
  * Copyright © 2014 Krylosov Maksim <Aequiternus@gmail.com>
  *
@@ -16,7 +16,7 @@ namespace aeqdev\AParser;
 /**
  * Simple list parser.
  */
-class AListParser extends \aeqdev\AParser
+class ListParser extends \aeqdev\AParser
 {
 
     /**
@@ -35,9 +35,15 @@ class AListParser extends \aeqdev\AParser
      * Parse item callback.
      * Define this callback or override parseItem method.
      *
-     * @var type
+     * @var callback
      */
     public $parseItem;
+    /**
+     * Print downloading process.
+     *
+     * @var bool
+     */
+    public $print;
 
     /**
      * Parse one list item.
@@ -70,8 +76,9 @@ class AListParser extends \aeqdev\AParser
         if (!isset($beginOfItem)) {
             $beginOfItem = $this->beginOfItem;
         }
-        if (!isset($parseItem)) {
-            $parseItem = isset($this->parseItem) ? $this->parseItem : [$this, 'parseItem'];
+        if (isset($parseItem)) {
+            $oldParseItem = $this->parseItem;
+            $this->parseItem = $parseItem;
         }
 
         $r = [];
@@ -81,9 +88,48 @@ class AListParser extends \aeqdev\AParser
         }
 
         while (false !== $this->seekTo($beginOfItem, $buffer)) {
-            $item = $parseItem();
+            $item = $this->parseItem();
             if (isset($item)) {
                 $r [] = $item;
+            }
+        }
+
+        if (isset($parseItem)) {
+            $this->parseItem = $oldParseItem;
+        }
+
+        return $r;
+    }
+
+    /**
+     * Parse files.
+     *
+     * @param string $fileList List of file names or urls to parse.
+     * @param string $beginOfList String, list starts from.
+     * @param string $beginOfItem String item starts from.
+     * @param string $parseItem Parse item callback.
+     *                          Define this callback or set parseItem property or override parseItem method.
+     *                          Should return array [ 'src' => $src, 'dest' => $dest].
+     * @param int $buffer Buffer length.
+     * @return array Result items array.
+     */
+    public function parseFiles($fileList, $beginOfList = null, $beginOfItem = null, $parseItem = null, $buffer = null)
+    {
+        $r = [];
+
+        $fileList = preg_split('`\s+`', trim($fileList));
+        $count = count($fileList);
+        for ($i = 0; $i < $count; $i++) {
+            $fileName = trim($fileList[$i]);
+            if (!empty($fileName)) {
+                if ($this->print) {
+                    printf("%02d/%02d: %s\n", $i + 1, $count, $fileName);
+                }
+                $this->open($fileName);
+                $list = $this->parseList($beginOfList, $beginOfItem, $parseItem, $buffer);
+                if (!empty($list)) {
+                    $r [] = $list;
+                }
             }
         }
 

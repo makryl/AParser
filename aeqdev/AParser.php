@@ -2,7 +2,7 @@
 
 /**
  * http://aeqdev.com/tools/php/aparser/
- * v 1.0
+ * v 1.1
  *
  * Copyright © 2014 Krylosov Maksim <Aequiternus@gmail.com>
  *
